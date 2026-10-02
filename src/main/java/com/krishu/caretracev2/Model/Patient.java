@@ -1,5 +1,6 @@
 package com.krishu.caretracev2.Model;
 
+import com.krishu.caretracev2.PreferredLanguage;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -16,6 +17,6 @@ public class Patient {
     private String id;
     private String userId;
     private Integer age;
-    private String preferred_language;
+    private PreferredLanguage preferred_language;
     private String careTakerId;
 }

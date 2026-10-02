@@ -1,5 +1,6 @@
 package com.krishu.caretracev2.DTO;
 
+import com.krishu.caretracev2.PreferredLanguage;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -7,5 +8,5 @@ import lombok.Setter;
 @Getter
 public class PatientUpdateRequest {
     private Integer age;
-    private String language;
+    private PreferredLanguage language;
 }

@@ -1,5 +1,6 @@
 package com.krishu.caretracev2.DTO;
 
+import com.krishu.caretracev2.PreferredLanguage;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -12,5 +13,5 @@ public class PatientMakingRequest {
     private String email;
     private String password;
     private Integer age;
-    private String preferredLanguage;
+    private PreferredLanguage preferredLanguage;
 }
