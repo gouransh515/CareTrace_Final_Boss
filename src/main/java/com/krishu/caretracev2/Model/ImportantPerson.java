@@ -15,7 +15,7 @@ public class ImportantPerson {
     private String id;
     private String name;
     private String relation;
-    private Integer phoneNo;
+    private Long phoneNo;
     private byte[] photo;
     private String patientId;
 }

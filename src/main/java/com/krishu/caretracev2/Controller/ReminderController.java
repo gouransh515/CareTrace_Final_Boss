@@ -19,12 +19,12 @@ public class ReminderController {
         this.reminderService = reminderService;
     }
 
-    @GetMapping("/createReminder/{patientId}")
+    @PostMapping("/createReminder/{patientId}")
     public ResponseEntity<ReminderResponse> createReminder(@RequestBody ReminderRequest request, @PathVariable String patientId, Authentication authentication){
         return ResponseEntity.ok(reminderService.createReminder(request,patientId,authentication));
     }
 
-    @PostMapping("/getReminders/{patientId}")
+    @GetMapping("/getReminders/{patientId}")
     public ResponseEntity<List<ReminderResponse>> getPatientReminders(@PathVariable String patientId,Authentication authentication){
         return ResponseEntity.ok(reminderService.getPatientReminders(patientId,authentication));
     }

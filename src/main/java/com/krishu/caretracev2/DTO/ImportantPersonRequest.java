@@ -8,5 +8,5 @@ import lombok.Setter;
 public class ImportantPersonRequest {
     private String name;
     private String relation;
-    private Integer phoneNo;
+    private Long phoneNo;
 }

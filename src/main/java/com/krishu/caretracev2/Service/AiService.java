@@ -24,42 +24,93 @@ public class AiService {
         return new AiResponse(response);
     }
 
-    private String buildPrompt(PatientContext context,String aiRequest){
+    private String buildPrompt(PatientContext context, String userMessage) {
+        System.out.println("USER MESSAGE = [" + userMessage + "]");
+        StringBuilder prompt = new StringBuilder();
 
-        return """
-                You are an AI assistant for a dementia care application.
+        prompt.append("""
+            You are an AI assistant for a dementia care application.
 
-                Patient information:
-                Age: %s
-                Preferred language: %s
+            Use the following patient information to answer the patient's question.
+            Only use information provided in this context.
+            Do not invent patient details or medical information.
+            Keep your response simple, friendly and easy to understand.
 
-                Important people:
-                %s
+            PATIENT INFORMATION
+            """);
 
-                Medications:
-                %s
+        prompt.append("\nAge: ").append(context.getAge());
+        prompt.append("\nPreferred Language: ").append(context.getLanguage());
 
-                Routines:
-                %s
+        prompt.append("\n\nIMPORTANT PEOPLE:\n");
 
-                Reminders:
-                %s
+        if (context.getImportantPersons() == null || context.getImportantPersons().isEmpty()) {
+            prompt.append("No important people information available.\n");
+        } else {
+            context.getImportantPersons().forEach(person -> {
+                prompt.append("- Name: ")
+                        .append(person.getName())
+                        .append(", Relation: ")
+                        .append(person.getRelation())
+                        .append("\n");
+            });
+        }
 
-                Patient's question:
-                %s
+        prompt.append("\nMEDICATIONS:\n");
 
-                Answer the patient in a simple, friendly and clear way.
-                Use the patient information when it is relevant.
-                Do not invent medical information or patient details.
-                """
-                .formatted(
-                        context.getAge(),
-                        context.getLanguage(),
-                        context.getImportantPersons(),
-                        context.getMedications(),
-                        context.getRoutines(),
-                        context.getReminders(),
-                        aiRequest
-                );
+        if (context.getMedications() == null || context.getMedications().isEmpty()) {
+            prompt.append("No medication information available.\n");
+        } else {
+            context.getMedications().forEach(medication -> {
+                prompt.append("- Name: ")
+                        .append(medication.getName())
+                        .append(", Dosage: ")
+                        .append(medication.getDosage())
+                        .append(", Frequency: ")
+                        .append(medication.getFrequency())
+                        .append(", Instructions: ")
+                        .append(medication.getInstructions())
+                        .append("\n");
+            });
+        }
+
+        prompt.append("\nROUTINES:\n");
+        if (context.getRoutines() == null || context.getRoutines().isEmpty()) {
+            prompt.append("No routine information available.\n");
+        } else {
+            context.getRoutines().forEach(routine -> {
+                prompt.append("- ")
+                        .append(routine.getRoutineName())
+                        .append(" at ")
+                        .append(routine.getTime())
+                        .append(", Days: ")
+                        .append(routine.getDays())
+                        .append(", Description: ")
+                        .append(routine.getDescription())
+                        .append("\n");
+            });
+        }
+
+
+        prompt.append("\nREMINDERS:\n");
+        if (context.getReminders() == null || context.getReminders().isEmpty()) {
+            prompt.append("No reminder information available.\n");
+        } else {
+            context.getReminders().forEach(reminder -> {
+                prompt.append("- Type: ")
+                        .append(reminder.getReminderType())
+                        .append(", Date: ")
+                        .append(reminder.getDate())
+                        .append(", Time: ")
+                        .append(reminder.getTime())
+                        .append("\n");
+            });
+        }
+
+
+        prompt.append("\nPATIENT'S QUESTION:\n");
+        prompt.append(userMessage);
+        prompt.append("\n\nANSWER:");
+        return prompt.toString();
     }
 }

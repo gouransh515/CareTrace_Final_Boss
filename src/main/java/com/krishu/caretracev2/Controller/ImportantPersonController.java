@@ -27,6 +27,13 @@ public class ImportantPersonController {
         return ResponseEntity.ok(importantPersonService.createImportantPerson(request,patientId,photo,authentication));
     }
 
+    @PostMapping("/addPersonWithoutPhoto/{patientId}")
+    public ResponseEntity<ImportantPersonResponse> addImportantPersonWithOutPhoto(@RequestBody ImportantPersonRequest request,@PathVariable String patientId,
+                                                                                  Authentication authentication) throws IOException {
+        return ResponseEntity.ok(importantPersonService.createImportantPerson(request,patientId,null,authentication));
+    }
+
+
     @GetMapping("/getPersons/{patientId}")
     public ResponseEntity<List<ImportantPersonResponse>> getAllImportantPerson(@PathVariable String patientId,
                                                                                Authentication authentication){

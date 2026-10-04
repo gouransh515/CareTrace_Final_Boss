@@ -20,7 +20,7 @@ public class MedicationController {
     }
 
     @PostMapping("/addMedication/{patientId}")
-    public ResponseEntity<MedicationResponse> createMedication(MedicationRequest request, @PathVariable String patientId, Authentication authentication){
+    public ResponseEntity<MedicationResponse> createMedication(@RequestBody MedicationRequest request, @PathVariable String patientId, Authentication authentication){
         return ResponseEntity.ok(medicationService.createMedication(request,patientId,authentication));
     }
 
