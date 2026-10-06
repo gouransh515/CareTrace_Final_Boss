@@ -1,27 +1,62 @@
 package com.krishu.caretracev2.Service;
 
+import com.google.genai.gaos.models.interactions.Interaction;
+import com.google.genai.gaos.models.interactions.ModelOutputStep;
+import com.google.genai.gaos.models.interactions.TextContent;
+import com.krishu.caretracev2.CustomExceptions.NotFoundException;
 import com.krishu.caretracev2.DTO.AiRequest;
 import com.krishu.caretracev2.DTO.AiResponse;
 import com.krishu.caretracev2.DTO.PatientContext;
+import com.krishu.caretracev2.Model.AiConversation;
+import com.krishu.caretracev2.Model.Patient;
+import com.krishu.caretracev2.Repository.AiConversationRepo;
+import com.krishu.caretracev2.Repository.PatientRepo;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class AiService {
 
     private final ContextService contextService;
     private final GeminiService geminiService;
+    private final PatientRepo patientRepo;
+    private final AiConversationService aiConversationService;
 
-    public AiService(ContextService contextService,GeminiService geminiService){
+    public AiService(ContextService contextService,GeminiService geminiService,PatientRepo patientRepo,AiConversationService aiConversationService){
         this.contextService=contextService;
         this.geminiService=geminiService;
+        this.patientRepo=patientRepo;
+        this.aiConversationService=aiConversationService;
     }
 
     public AiResponse chat(AiRequest request, Authentication authentication){
         PatientContext context=contextService.createContext(authentication);
+        Patient patient=patientRepo.findByUserId(authentication.getName()).orElseThrow(()->new NotFoundException("Patient not found"));
+        String lastInteractionId=aiConversationService.getLastInteractionId(patient.getId());
         String prompt=buildPrompt(context,request.getMessage());
-        String response=geminiService.generateResponse(prompt);
-        return new AiResponse(response);
+        Interaction interaction=geminiService.generateResponse(prompt,lastInteractionId);
+
+        aiConversationService.saveInteraction(patient.getId(),interaction.id().orElse(""));
+
+        String direct = interaction.outputText().orElse("");
+
+        if (!direct.isEmpty()) {
+            return new AiResponse(direct);
+        }
+
+        StringBuilder sb = new StringBuilder();
+        for (var step : interaction.steps().orElse(List.of())) {
+            if (step instanceof ModelOutputStep modelStep) {
+                for (var content : modelStep.content().orElse(List.of())) {
+                    if (content instanceof TextContent textContent) {
+                        sb.append(textContent.text().orElse(""));
+                    }
+                }
+            }
+        }
+        return new AiResponse(sb.toString());
     }
 
     private String buildPrompt(PatientContext context, String userMessage) {
