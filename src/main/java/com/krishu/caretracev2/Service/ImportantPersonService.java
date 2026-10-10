@@ -5,6 +5,7 @@ import com.krishu.caretracev2.CustomExceptions.NotRelatedException;
 import com.krishu.caretracev2.CustomExceptions.UnauthorizedException;
 import com.krishu.caretracev2.DTO.ImportantPersonRequest;
 import com.krishu.caretracev2.DTO.ImportantPersonResponse;
+import com.krishu.caretracev2.DTO.PersonForFlashCard;
 import com.krishu.caretracev2.Model.CareTaker;
 import com.krishu.caretracev2.Model.ImportantPerson;
 import com.krishu.caretracev2.Model.Patient;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -25,13 +27,15 @@ public class ImportantPersonService {
     private final CareTakerRepo careTakerRepo;
     private final PatientRepo patientRepo;
 
-    public ImportantPersonService(ImportantPersonRepo importantPersonRepo, CareTakerRepo careTakerRepo, PatientRepo patientRepo) {
+    public ImportantPersonService(ImportantPersonRepo importantPersonRepo, CareTakerRepo careTakerRepo
+            , PatientRepo patientRepo) {
         this.importantPersonRepo = importantPersonRepo;
         this.careTakerRepo = careTakerRepo;
         this.patientRepo = patientRepo;
     }
 
-    public ImportantPersonResponse createImportantPerson(ImportantPersonRequest request, String patientId, MultipartFile photo, Authentication authentication) throws IOException {
+    public ImportantPersonResponse createImportantPerson(ImportantPersonRequest request
+            , String patientId, MultipartFile photo, Authentication authentication) throws IOException {
         CareTaker careTaker=careTakerRepo.findByUserId(authentication.getName())
                 .orElseThrow(()->new NotFoundException("CareTaker not found"));
         Patient patient=patientRepo.findById(patientId).orElseThrow(()->new NotFoundException("Patient not found"));
@@ -60,7 +64,8 @@ public class ImportantPersonService {
         return importantPersons.stream().map(this::mapToImportantPersonResponse).toList();
     }
 
-    public ImportantPersonResponse updatePerson(ImportantPersonRequest request,String patientId,String importantPersonId
+    public ImportantPersonResponse updatePerson(ImportantPersonRequest request
+            ,String patientId,String importantPersonId
             ,Authentication authentication,MultipartFile photo) throws IOException {
         CareTaker careTaker=getCareTaker(authentication);
         Patient patient=patientRepo.findById(patientId).orElseThrow(()->new NotFoundException("Patient not found"));
@@ -83,7 +88,8 @@ public class ImportantPersonService {
         if(!patient.getCareTakerId().equals(careTaker.getId())){
             throw new UnauthorizedException("You are not authorize to access this patient");
         }
-        ImportantPerson person=importantPersonRepo.findById(patientId).orElseThrow(()->new NotFoundException("Person not found"));
+        ImportantPerson person=importantPersonRepo.findById(patientId).orElseThrow(()
+                ->new NotFoundException("Person not found"));
         if(!person.getPatientId().equals(patientId)){
             throw new NotRelatedException("Person and Patient are not related");
         }
@@ -92,8 +98,24 @@ public class ImportantPersonService {
 
     public List<ImportantPersonResponse> getPatientImportantPerson(Authentication authentication) {
         String patientUserId=authentication.getName();
-        Patient patient=patientRepo.findByUserId(patientUserId).orElseThrow(()->new NotFoundException("Patient not found"));
-        return importantPersonRepo.findByPatientId(patient.getId()).stream().map(this::mapToImportantPersonResponse).toList();
+        Patient patient=patientRepo.findByUserId(patientUserId).orElseThrow(()
+                ->new NotFoundException("Patient not found"));
+        return importantPersonRepo.findByPatientId(patient.getId()).stream().
+                map(this::mapToImportantPersonResponse).toList();
+    }
+
+    public List<PersonForFlashCard> getPersonsPhotos(Authentication authentication){
+        Patient patient=patientRepo.findByUserId(authentication.getName())
+                .orElseThrow(()->new NotFoundException("Patient not found"));
+        List<ImportantPerson> importantPersons=importantPersonRepo.findByPatientId(patient.getId());
+        List<PersonForFlashCard> response=new ArrayList<>();
+        for(ImportantPerson person:importantPersons){
+            if(person.getPhoto()==null || person.getPhoto().length == 0){
+                continue;
+            }
+            response.add(mapToPersonFlashCard(person));
+        }
+        return response;
     }
 
     private ImportantPersonResponse mapToImportantPersonResponse(ImportantPerson importantPerson){
@@ -106,6 +128,15 @@ public class ImportantPersonService {
     }
 
     private CareTaker getCareTaker(Authentication authentication){
-        return careTakerRepo.findByUserId(authentication.getName()).orElseThrow(()->new NotFoundException("CareTaker not found"));
+        return careTakerRepo.findByUserId(authentication.getName()).orElseThrow(()
+                ->new NotFoundException("CareTaker not found"));
+    }
+
+    private PersonForFlashCard mapToPersonFlashCard(ImportantPerson person){
+        PersonForFlashCard response=new PersonForFlashCard();
+        response.setPhoto(person.getPhoto());
+        response.setRelation(person.getRelation());
+        response.setPersonName(person.getName());
+        return response;
     }
 }
