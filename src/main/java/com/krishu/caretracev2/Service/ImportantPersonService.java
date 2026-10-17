@@ -19,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class ImportantPersonService {
@@ -104,18 +105,10 @@ public class ImportantPersonService {
                 map(this::mapToImportantPersonResponse).toList();
     }
 
-    public List<PersonForFlashCard> getPersonsPhotos(Authentication authentication){
-        Patient patient=patientRepo.findByUserId(authentication.getName())
-                .orElseThrow(()->new NotFoundException("Patient not found"));
-        List<ImportantPerson> importantPersons=importantPersonRepo.findByPatientId(patient.getId());
-        List<PersonForFlashCard> response=new ArrayList<>();
-        for(ImportantPerson person:importantPersons){
-            if(person.getPhoto()==null || person.getPhoto().length == 0){
-                continue;
-            }
-            response.add(mapToPersonFlashCard(person));
-        }
-        return response;
+    public List<ImportantPerson> getPersonsPhotos(String patientId){;
+        List<ImportantPerson> importantPersons=importantPersonRepo.findByPatientId(patientId);
+        return importantPersons.stream().filter(person->person.getPhoto()!=null && person.getPhoto()
+                .length>0).collect(Collectors.toCollection(ArrayList::new));
     }
 
     private ImportantPersonResponse mapToImportantPersonResponse(ImportantPerson importantPerson){
@@ -134,6 +127,7 @@ public class ImportantPersonService {
 
     private PersonForFlashCard mapToPersonFlashCard(ImportantPerson person){
         PersonForFlashCard response=new PersonForFlashCard();
+        response.setPersonId(person.getId());
         response.setPhoto(person.getPhoto());
         response.setRelation(person.getRelation());
         response.setPersonName(person.getName());

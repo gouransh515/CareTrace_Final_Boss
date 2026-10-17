@@ -2,6 +2,8 @@ package com.krishu.caretracev2.Model;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.List;
@@ -10,10 +12,13 @@ import java.util.List;
 @Setter
 @Document(collection="flashcardsession")
 public class FlashCardGameSession {
+    @Id
     private String id;
     private String patientId;
     private List<String> personIds;
     private int questinIndex;
     private int score;
     private Boolean completed;
+    @Version
+    private Long version;
 }

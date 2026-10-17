@@ -6,6 +6,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class PersonForFlashCard {
+    private String personId;
     private byte[] photo;
     private String relation;
     private String personName;

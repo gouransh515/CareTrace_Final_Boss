@@ -52,4 +52,22 @@ public class GlobalExceptionHandler {
         ErrorResponse errorResponse=new ErrorResponse(409,exp.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
     }
+
+    @ExceptionHandler(GameAlreadyCompletedException.class)
+    public ResponseEntity<ErrorResponse> GameAlreadyCompleted(GameAlreadyCompletedException exp){
+        ErrorResponse errorResponse=new ErrorResponse(409,exp.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    }
+
+    @ExceptionHandler(OutOfRangeException.class)
+    public ResponseEntity<ErrorResponse> OutOfRange(OutOfRangeException exp){
+        ErrorResponse errorResponse=new ErrorResponse(400,exp.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    }
+
+    @ExceptionHandler(GameNotCompleteException.class)
+    public ResponseEntity<ErrorResponse> GameNotComplete(GameNotCompleteException exp){
+        ErrorResponse errorResponse=new ErrorResponse(409,exp.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    }
 }
