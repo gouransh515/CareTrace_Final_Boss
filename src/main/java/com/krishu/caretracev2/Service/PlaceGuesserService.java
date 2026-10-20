@@ -70,60 +70,78 @@ public class PlaceGuesserService {
         session.setCompleted(false);
         session.setStartedAt(LocalDateTime.now());
 
+        PlaceGuesserQuestionResponse response=buildCurrentQuestion(session);
         PlaceGuesserSession savedSession=placeGuesserRepo.save(session);
-        return buildCurrentQuestion(savedSession);
+        response.setSessionId(savedSession.getId());
+        return response;
     }
 
-    public PlaceGuesserAnswerResponse submitAnswer(Authentication authentication
-            , PlaceGuesserAnswerRequest request,String sessionId){
-        PlaceGuesserSession session=getSessionAuthentication(authentication,sessionId);
+    public PlaceGuesserAnswerResponse submitAnswer(Authentication authentication,
+                                                   PlaceGuesserAnswerRequest request, String sessionId) {
 
-        if(session.getCompleted()){
+        PlaceGuesserSession session = getSessionAuthentication(authentication, sessionId);
+
+        if (Boolean.TRUE.equals(session.getCompleted())) {
             throw new GameAlreadyCompletedException("Game has already completed");
         }
 
-        int index=session.getCurrQuestionIndex();
-        if(index<0 || index >=MAX_QUESTION){
+        int index = session.getCurrQuestionIndex();
+
+        if (index < 0 || index >= session.getTotalQuestions()) {
             throw new OutOfRangeException("Invalid Question Index");
         }
 
-        ImportantPlace correctPlace=placeRepo.findById(session.getImportantPlaceIds()
-                        .get(session.getCurrQuestionIndex()))
-                .orElseThrow(()->new NotFoundException("No such place"));
+        ImportantPlace correctPlace = placeRepo.findById(session.getImportantPlaceIds().get(index))
+                .orElseThrow(() -> new NotFoundException("Place not found"));
+        List<String> options = session.getCurrOptions();
 
-        if(!correctPlace.getId().equals(request.getPlaceId())){
-            throw new IllegalArgumentException("This is not current question");
+        String answer = request.getAnswer() == null ? "" : request.getAnswer().trim();
+
+        if (options == null || !options.stream()
+                .anyMatch(option -> option.equalsIgnoreCase(answer))) {
+            throw new IllegalArgumentException(
+                    "Answer must be one of the available options");
         }
 
-        boolean correct=(correctPlace.getName()!=null && correctPlace.getName()
-                .equalsIgnoreCase((request.getAnswer()==null)?"":request.getAnswer().trim()));
-        String message="Wrong answer!!";
-        if(correct){
-            session.setScore(session.getScore()+1);
-            message="Correct Answer!!";
+        boolean correct = correctPlace.getName() != null
+                && correctPlace.getName().equalsIgnoreCase(answer);
+
+        String message = correct ? "Correct Answer!" : "Wrong answer!";
+
+        if (correct) {
+            session.setScore(session.getScore() + 1);
         }
 
-        session.setCurrQuestionIndex(session.getCurrQuestionIndex()+1);
+        session.setCurrQuestionIndex(index + 1);
 
-        PlaceGuesserAnswerResponse response=new PlaceGuesserAnswerResponse();
+        session.setCurrOptions(null);
+
+        PlaceGuesserAnswerResponse response =
+                new PlaceGuesserAnswerResponse();
+
         response.setCorrect(correct);
         response.setCorrectAnswer(correctPlace.getName());
         response.setScore(session.getScore());
         response.setMessage(message);
-        if(session.getCurrQuestionIndex()>=session.getTotalQuestions()){
+
+        if (session.getCurrQuestionIndex() >= session.getTotalQuestions()) {
             session.setCompleted(true);
             response.setCompleted(true);
             response.setNextQuestion(null);
-        }else{
+        } else {
             response.setCompleted(false);
             response.setNextQuestion(buildCurrentQuestion(session));
         }
+
         try {
             placeGuesserRepo.save(session);
         } catch (OptimisticLockingFailureException ex) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "This question has already been " +
-                    "answered or the game state has changed.");
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "This question has already been answered or the game state has changed."
+            );
         }
+
         return response;
     }
 
@@ -145,25 +163,27 @@ public class PlaceGuesserService {
         ImportantPlace place=placeRepo.findById(placeId).
                 orElseThrow(()->new NotFoundException("Place not found"));
         List<ImportantPlace> importantPlaces=placeRepo.findByPatientId(session.getPatientId());
+        List<String> options=session.getCurrOptions();
 
-        List<String> options=new ArrayList<>();
-        List<String> placeNames=importantPlaces.stream().map(ImportantPlace::getName)
-                .filter(name->name!=null && !name.isBlank()).distinct().
-                filter(name->!name.equalsIgnoreCase(place.getName())).toList();
-        Collections.shuffle(placeNames);
-        options.add(place.getName());
-        options.addAll(placeNames.stream().limit(MAX_OPTION-1).toList());
+        if(options==null || options.isEmpty()){
+            List<String> placesName=importantPlaces.stream().map(ImportantPlace::getName)
+                    .filter(name->name!=null && !name.isBlank())
+                    .distinct().filter(name->!name.equalsIgnoreCase(place.getName())).toList();
+            Collections.shuffle(placesName);
+            options=new ArrayList<>();
+            options.addAll(placesName.stream().limit(MAX_OPTION-1).toList());
+            options.add(place.getName());
 
-        Collections.shuffle(options);
+            Collections.shuffle(options);
+            session.setCurrOptions(options);
+        }
 
         PlaceGuesserQuestionResponse response=new PlaceGuesserQuestionResponse();
-        response.setSessionId(session.getId());
+        response.setOptions(options);
+        response.setPlaceId(place.getId());
+        response.setPlacePhoto(place.getPhoto());
         response.setQuestionNo(session.getCurrQuestionIndex()+1);
         response.setTotalQuestions(session.getTotalQuestions());
-        response.setPlaceId(place.getId());
-        response.setOptions(options);
-        response.setPlacePhoto(place.getPhoto());
-
         return response;
     }
 

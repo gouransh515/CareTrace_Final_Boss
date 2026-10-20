@@ -22,6 +22,7 @@ public class PlaceGuesserSession {
     private Integer totalQuestions;
     private Boolean completed;
     private LocalDateTime startedAt;
+    private List<String> currOptions;
     @Version
     private long version;
 }
