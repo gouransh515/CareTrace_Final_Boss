@@ -28,6 +28,8 @@ public class FlashCardGameService {
     private final ImportantPersonRepo importantPersonRepo;
     private final PatientRepo patientRepo;
 
+    private final int MAX_OPTIONS=4;
+
     public FlashCardGameService(FlashCardGameSessionRepo flashCardGameSessionRepo,
                                 ImportantPersonService importantPersonService,
                                 PatientRepo patientRepo,ImportantPersonRepo importantPersonRepo){
@@ -53,8 +55,10 @@ public class FlashCardGameService {
         session.setQuestinIndex(0);
         session.setScore(0);
 
-        session=flashCardGameSessionRepo.save(session);
-        return buildQuestion(session);
+        FlashCardQuestionResponse response=buildQuestion(session);
+        FlashCardGameSession savedSession=flashCardGameSessionRepo.save(session);
+        response.setSessionId(savedSession.getId());
+        return response;
     }
 
     public FlashCardAnswerResponse submitAnswer(FlashCardAnswerRequest request,
@@ -135,34 +139,31 @@ public class FlashCardGameService {
         return response;
     }
 
-    private FlashCardQuestionResponse buildQuestion(FlashCardGameSession session){
-        String personId=session.getPersonIds().get(session.getQuestinIndex());
-        ImportantPerson person=importantPersonRepo.findById(personId).orElseThrow(()->
+    private FlashCardQuestionResponse buildQuestion(FlashCardGameSession session) {
+        String personId = session.getPersonIds().get(session.getQuestinIndex());
+        ImportantPerson person = importantPersonRepo.findById(personId).orElseThrow(() ->
                 new NotFoundException("Person not found"));
-        List<ImportantPerson> persons=importantPersonRepo.findByPatientId(session.getPatientId());
-        List<String> options=persons.stream().map(ImportantPerson::getRelation).filter(Objects::nonNull)
-                .filter(relation->!relation.isBlank()).distinct().
-                collect(Collectors.toCollection(ArrayList::new));
-        if(!options.contains(person.getRelation())){
-            options.add(person.getRelation());
-        }
-        Collections.shuffle(options);
-        if(options.size()>4){
-            options.remove(person.getRelation());
-            List<String> selectedOptions=new ArrayList<>(options.subList(0,3));
-            options=selectedOptions;
+        List<ImportantPerson> persons = importantPersonRepo.findByPatientId(session.getPatientId());
+
+        List<String> options = session.getCurrOptions();
+        if (options == null || options.isEmpty()) {
+            List<String> relations = persons.stream().map(ImportantPerson::getRelation)
+                    .filter(relation -> relation != null && !relation.isBlank())
+                    .distinct().filter(relation -> !relation.equalsIgnoreCase(person.getRelation())).toList();
+            Collections.shuffle(relations);
+            options = new ArrayList<>();
+            options.addAll(relations.stream().limit(MAX_OPTIONS - 1).toList());
             options.add(person.getRelation());
             Collections.shuffle(options);
+            session.setCurrOptions(options);
         }
 
         FlashCardQuestionResponse response=new FlashCardQuestionResponse();
-        response.setOptions(options);
-        response.setPersonId(personId);
-        response.setPhoto(person.getPhoto());
-        response.setQuestionNumber(session.getQuestinIndex()+1);
-        response.setSessionId(session.getId());
         response.setTotalQuestions(session.getPersonIds().size());
-
+        response.setQuestionNumber(session.getQuestinIndex()+1);
+        response.setPhoto(person.getPhoto());
+        response.setPersonId(person.getId());
+        response.setOptions(options);
         return response;
     }
 }

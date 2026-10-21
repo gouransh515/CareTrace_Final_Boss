@@ -19,6 +19,7 @@ public class FlashCardGameSession {
     private int questinIndex;
     private int score;
     private Boolean completed;
+    private List<String> currOptions;
     @Version
     private Long version;
 }
